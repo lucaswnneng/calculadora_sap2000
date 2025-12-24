@@ -8,7 +8,7 @@ def sap_para_df(arquivo_excel, planilha):
 
     # Verifica se há dados na planilha
     if planilha not in pd.ExcelFile(arquivo_excel).sheet_names:
-        raise ValueError(f"A planilha '{planilha}' não foi encontrada no arquivo.")
+        return None
 
     # Lê o arquivo inteiro sem assumir cabeçalho
     df_raw = pd.read_excel(
