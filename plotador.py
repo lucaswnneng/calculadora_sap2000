@@ -5,7 +5,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.tri as mtri
 from matplotlib.ticker import MaxNLocator, FuncFormatter
-from sap_para_df import sap_para_df
+from ferramentas import sap_para_df
 from matematica import *
 
 # ===============================
@@ -98,11 +98,6 @@ esforco_no = {j: np.mean(v) for j, v in esforco_no.items()}
 valores = np.array(list(esforco_no.values()))
 norm = colors.Normalize(vmin=valores.min(), vmax=valores.max())
 cmap = cm.gist_rainbow
-n = cmap.N
-offset = 0.0
-newcolors = cmap(np.linspace(0, 1, n))
-newcolors = np.roll(newcolors, int(n * offset), axis=0)
-cmap = colors.ListedColormap(newcolors)
 
 # ===============================
 # MALHA TRIANGULAR GLOBAL

@@ -22,3 +22,10 @@ def projetar_ponto(ponto, origem, e1, e2):
     """
     v = ponto - origem
     return np.array([np.dot(v, e1), np.dot(v, e2)])
+
+class Plano_camera:
+    def __init__(self, p1, p2, p3):
+        self.origem, self.e1, self.e2 = plano_base(p1, p2, p3)
+
+    def projetar(self, ponto):
+        return projetar_ponto(ponto, self.origem, self.e1, self.e2)
