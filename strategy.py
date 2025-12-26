@@ -6,6 +6,7 @@ import matplotlib.tri as mtri
 from matematica import projetar_ponto
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, FuncFormatter
+import sys
 
 
 class Calculo_strategy(ABC):
@@ -31,9 +32,8 @@ class Layout_strategy(ABC):
 class Calculo_resistencia_cisalhamento_laje_strategy(Calculo_strategy):
     def gerar_resultado(self, args):
         output_col = super().output_col
-        esforco_df_key, areas_df_key = "esforcos_df", "areas_df"
+        esforco_df_key = "esforcos_df"
         esforcos_df = args[esforco_df_key].copy()
-        areas_df = args[areas_df_key]
 
         fck = args["fck"]
         gammac = args["gammac"]
@@ -49,7 +49,8 @@ class Calculo_resistencia_cisalhamento_laje_strategy(Calculo_strategy):
         phi1 = As * 0.0001 / (bw * d)
         k = max([1, abs(1.6 - d)])
 
-        esforcos_df["Vrd1"] = (
+        print("Calculando resistência ao cisalhamento das lajes...")
+        esforcos_df["Vrd1_13"] = (
             bw
             * d
             * (
@@ -58,30 +59,39 @@ class Calculo_resistencia_cisalhamento_laje_strategy(Calculo_strategy):
             )
             / gammaf
         )  # tf/m
-        
-        esforcos_df[output_col] = np.maximum(np.abs(esforcos_df["V13"]) - esforcos_df["Vrd1"], 0)
+
+        esforcos_df["Vrd1_23"] = (
+            bw
+            * d
+            * (
+                thaurd * k * (1.2 + 40 * phi1)
+                + 0.15 * (-gammaf * esforcos_df["F22"] / h)
+            )
+            / gammaf
+        )  # tf/m
+
+        esforcos_df["Diff1"] = np.maximum(
+            np.abs(esforcos_df["V13"]) - esforcos_df["Vrd1_13"], 0
+        )
+
+        esforcos_df["Diff2"] = np.maximum(
+            np.abs(esforcos_df["V23"]) - esforcos_df["Vrd1_23"], 0
+        )
+
+        print(esforcos_df["Diff1"].max(), "Máximo Diff1")
+        print(esforcos_df["Diff2"].max(), "Máximo Diff2")
+
+        esforcos_df[output_col] = esforcos_df[["Diff1", "Diff2"]].max(axis=1)
+
+        print("Cálculo da resistência ao cisalhamento concluído.")
 
         esforcos_df = esforcos_df[["Area", "Joint", output_col]]
 
-        result_dados = {}
-        esforcos_areas = esforcos_df["Area"].values
-        joint_cols = ["Joint1", "Joint2", "Joint3", "Joint4"]
-        for _, lin in areas_df.iterrows():
-            area = lin["Area"]
-            if area not in esforcos_areas:
-                continue
+        print("Agregando resultados por nó...")
+        result_dados = esforcos_df.groupby("Joint")[output_col].max().to_dict()
+        print("Agregação concluída.")
+        print(max(result_dados.values()), "Máximo geral por nó")
 
-            for col in joint_cols:
-                if col in lin and not pd.isna(lin[col]):
-                    j = lin[col]
-                    valor = esforcos_df.loc[
-                        (esforcos_df["Area"] == area) & (esforcos_df["Joint"] == j),
-                        output_col,
-                    ].iloc[0]
-
-                    result_dados.setdefault(j, []).append(valor)
-
-        result_dados = {j: np.mean(v) for j, v in result_dados.items()}
         return result_dados
 
 
